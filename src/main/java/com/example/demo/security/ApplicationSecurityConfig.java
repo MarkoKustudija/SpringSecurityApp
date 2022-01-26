@@ -15,9 +15,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.Base64;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 //import static com.example.demo.security.ApplicationUserRole.ADMIN;
 //import static com.example.demo.security.ApplicationUserRole.STUDENT;
@@ -38,28 +41,34 @@ public class ApplicationSecurityConfig  extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-                 http
-                 .csrf()
-                 .disable()
-                .authorizeRequests()
-                 .antMatchers("/", "index", "/css", "/js/*").permitAll()
-                 .antMatchers( "/api/**").hasRole(STUDENT.name())
-                 .antMatchers( HttpMethod.POST, "/man/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
-                 .antMatchers(HttpMethod.GET, "/man/api/**").hasAnyRole(ADMIN.name(), ADMIN_TRAINEE.name())
-                 .antMatchers( HttpMethod.PUT, "/man/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
-                .antMatchers( HttpMethod.DELETE, "/man/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
-//
-//                         .antMatchers( HttpMethod.POST, "/man/api/**").permitAll()
-//                         .antMatchers( HttpMethod.PUT, "/man/api/**").hasRole(ADMIN.name())
-//                         .antMatchers( HttpMethod.DELETE, "/man/api/**").hasRole(ADMIN.name())
-                .anyRequest()
-                .authenticated()
-                 .and()
-                 .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                 .and()
-                .httpBasic();
-
+             http
+                .csrf().disable()
+                     //                 .csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).and()
+                     .authorizeRequests()
+                     .antMatchers("/", "index", "/css/*", "/js/*").permitAll()
+                     .antMatchers("/api/**").hasRole(STUDENT.name())
+                     .anyRequest()
+                     .authenticated()
+                     .and()
+                     .formLogin()
+                     .loginPage("/login")
+                     .permitAll()
+                     .defaultSuccessUrl("/courses", true)
+                     .passwordParameter("password")
+                     .usernameParameter("username")
+                     .and()
+                     .rememberMe()
+                     .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21))
+                     .key("somethingverysecured")
+                     .rememberMeParameter("remember-me")
+                     .and()
+                     .logout()
+                     .logoutUrl("/logout")
+                     .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET")) // https://docs.spring.io/spring-security/site/docs/4.2.12.RELEASE/apidocs/org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html
+                     .clearAuthentication(true)
+                     .invalidateHttpSession(true)
+                     .deleteCookies("JSESSIONID", "remember-me")
+                      .logoutSuccessUrl("/login");
     }
 
     @Override
