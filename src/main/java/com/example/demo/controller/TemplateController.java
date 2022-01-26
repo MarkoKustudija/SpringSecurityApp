@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/")
 public class TemplateController {
 
-    @GetMapping("/login")
+    @GetMapping("/login.html")
     public String getLogin() {
         return "login";
     }
